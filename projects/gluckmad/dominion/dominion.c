@@ -1239,7 +1239,7 @@ int playAdventurer(struct gameState *state)
     
     // Initialize variables
     int drawntreasure = 0;
-    int temphand[50];
+    int temphand[MAX_HAND];
     int z = 0;  // Counter for temphand
     int cardDrawn;
     
