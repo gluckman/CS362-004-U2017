@@ -1,1 +1,1 @@
-David Gluckman
+This is my Assignment 3 submission.
