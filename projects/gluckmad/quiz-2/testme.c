@@ -24,7 +24,8 @@ char *inputString()
     s[5] = '\0';
     
     // Set each char randomly
-    for (int i = 0; i < 5; i++)
+    int i;
+    for (i = 0; i < 5; i++)
     {
         // Set to random character
         s[i] = 'a' + (rand() % 26);
