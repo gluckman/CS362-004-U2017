@@ -1270,7 +1270,8 @@ int playSmithy(struct gameState *state)
     int currentPlayer = whoseTurn(state);
     
     //+3 Cards
-    for (int i = 0; i < 4; i++)
+    int i;
+    for (i = 0; i < 4; i++)
     {
         drawCard(currentPlayer, state);
     }
@@ -1324,11 +1325,13 @@ int playCutpurse(struct gameState *state)
     int currentPlayer = whoseTurn(state);
     
     updateCoins(currentPlayer, state, 2);
-    for (int i = 0; i < state->numPlayers; i++)
+    int i;
+    for (i = 0; i < state->numPlayers; i++)
     {
         if (i != currentPlayer)
         {
-            for (int j = 0; j < state->handCount[i]; j++)
+            int j;
+            for (j = 0; j < state->handCount[i]; j++)
             {
                 if (state->hand[i][j] == copper)
                 {
@@ -1337,7 +1340,8 @@ int playCutpurse(struct gameState *state)
                 }
                 if (j == state->handCount[i])
                 {
-                    for (int k = 0; k < state->handCount[i]; k++)
+                    int k;
+                    for (k = 0; k < state->handCount[i]; k++)
                     {
                         if (DEBUG)
                             printf("Player %d reveals card number %d\n", i, state->hand[i][k]);
