@@ -1,0 +1,204 @@
+DB1001 - Dominion Bug Report
+==============================
+
+Title:    Adventurer card effect shuffles when one card left in deck
+
+Class:     Serious Bug
+e.g. "Feature Request", "System Error", "Serious Bug"
+
+Date:               8/4/2017     
+Reported By:   David Gluckman
+Email:              gluckmad@oregonstate.edu
+
+Product:    Dominion                  Version: 1.0
+Platform:   OSU Flip Linux         Version: 3.10.0-327.36.3.el7.x86_64 
+Browser:   N/A                           Version: N/A
+URL:         N/A
+
+Is it reproducible: Yes
+
+Description
+===========
+This only has an effect on the outcome of the game in rare instances – specifically when the last card in the deck is a treasure card and it is initially skipped and shuffled back into the deck. As long as it is not both the only treasure card left and again makes its way to the bottom of the deck, it will be uncovered eventually. Meanwhile, more cards than necessary will be examined and sent to the discard pile, which is highly likely to affect the game’s outcome.
+
+It appears this is occurring because the Adventurer card effect is considering a deck with 1 card or less as empty instead of rightly looking at only cards with less than 1 card (or 0 cards) as empty. After taking a quick look at the function itself, he fix may be as simple as removing the = from the <= 1 in the if statement that decides whether the deck is empty and a shuffle is needed, but further examination and testing will be needed to confirm this.
+
+Dominion.c lines 1229–1233:
+ while(drawntreasure<2){
+        if (state->deckCount[currentPlayer] <=1){//if the deck is empty we
+            // need to shuffle discard and add to deck
+            shuffle(currentPlayer, state);
+        }
+
+In the first if statement, which checks for an empty deck, the comparison should be <1 instead of <=1.
+
+
+Steps to Produce/Reproduce
+--------------------------
+This bug was caught using randomtestadventurer.c, which is run 10,000 times with random inputs. The specific setup results in only 9 failures, most if not all of which are a result of this bug. 
+
+For example, as seen in the first failure encountered by randomtestadventurer.c:
+
+INPUTS
+Player: 1
+Hand count: 176
+Deck count: 15
+Discard count: 2
+
+From test output:
+Adventurer PRE : p 1 HC 176 DeC 15 DiC 2
+
+Alternatively, a straightforward setup to test would be a deck with only one card left, which is a treasure card (copper, silver, or gold) and then a discard pile with no treasure cards. The following code will set this up:
+
+int i, n, p;
+struct gameState G;
+        
+SelectStream(2);
+PutSeed(3);
+    
+int cardTypes = 27;
+    
+// Clear the game struct
+for (i = 0; i < sizeof(struct gameState); i++) {
+    ((char*)&G)[i] = floor(Random() * 256);
+}
+        
+// Set relevant variables
+p = 0;
+G.deckCount[p] = 1;
+G.discardCount[p] = 10;
+G.handCount[p] = 5;
+        
+// Set cards in deck, hand, discard
+
+G.deck[p][1] = copper;
+for (i = 0; i < G.handCount[p]; i++) {
+G.hand[p][i] = estate;
+}
+for (i = 0; i < G.discardCount[p]; i++) {
+    G.discard[p][i] = duchy;
+    }
+        
+// Set current player
+G.whoseTurn = p;
+        
+// Pass to tested function
+adventurerEffect(&G);
+
+
+Expected Results
+----------------
+Using randomtestadventurer.c, the below results are expected for the highlighted run:
+
+EXPECTED OUTPUT FROM ORACLE
+Player: 1
+Hand count: 178
+Deck count: 4
+Discard count: 11
+
+From test output:
+Adventurer PRE2: p 1 HC 178 DeC 4 DiC 11
+
+
+Actual Results
+--------------
+Using randomtestadventurer.c, the below results are what we get for the highlighted run:
+
+ACTUAL OUTPUT FROM FUT
+Player: 1
+Hand count: 178
+Deck count: 1
+Discard count: 14
+
+From test output:
+Adventurer POST: p 1 HC 178 DeC 1 DiC 14
+
+Note: In this and other failed tests, the same card was eventually found, so it is important to also examine the amount and types of cards in the discard pile and deck.
+
+
+Workarounds
+-----------
+N/A
+
+
+Attachments
+-----------
+randomtestadventurer.c
+Dominion.c
+
+
+Other Information
+-----------------
+There is a related bug with the Adventurer card effect that allows it to shuffle multiple times in search of treasure cards. This is against the rules of Dominion, which state that if a second treasure card has not been found and the discard pile/deck has already been shuffled, it is not shuffled again and the player only receives the single additional treasure card. This is not obvious from the card itself, and is not likely to occur often if at all, but is described in the game rules.
+
+The random Adventurer card test (randomtestadventurer.c) will need to be rerun after the above bug is fixed to check whether or not the multi-shuffle bug still exists. Additional logic may be required to implement the shuffle guard, such as a shuffle count.
+
+
+
+
+DB1002 - Dominion Bug Report
+==============================
+
+Title:    Smithy card effect draws 4 cards instead of 3
+
+Class:     Serious Bug
+e.g. "Feature Request", "System Error", "Serious Bug"
+
+Date:               8/4/2017     
+Reported By:   David Gluckman
+Email:              gluckmad@oregonstate.edu
+
+Product:    Dominion                  Version: 1.0
+Platform:   OSU Flip Linux         Version: 3.10.0-327.36.3.el7.x86_64 
+Browser:   N/A                           Version: N/A
+URL:         N/A
+
+Is it reproducible: Yes
+
+Description
+===========
+Whenever Smithy is played, it adds four cards to the player’s hand. This card is supposed to add only three cards to the hand. As a result, all tests fail with this smithyEffect() function.
+
+In particular, and for purposes of verifying the bug, all tests in cardtest2.c fail because there are too many cards in the hand as a result.
+
+Dominion.c lines 1256–1259:
+    for (i = 0; i < 4; i++)
+    {
+        drawCard(currentPlayer, state);
+    }
+ 
+The 4 in the for loop stop clause should be a 3, allowing the loop to run only three times.
+
+
+Steps to Produce/Reproduce
+--------------------------
+Any play of the Smithy card will result in one too many cards added to the player’s hand. Again, cardtest2.c can be used to illustrate this. This bug is consistent enough that no special setup is necessary, other than a partly initialized game instance with deck/deck size, discard/discard size, hand/hand size, player, and playedCardCount initialized to sane values.
+
+
+Expected Results
+----------------
+Smithy is played, three cards added to player’s hand, Smithy discarded.
+
+The player’s hand should increase by two cards (because Smithy is discarded), and the deck size should be reduced by three cards.
+
+
+Actual Results
+--------------
+Smithy is played, four cards added to player’s hand, Smithy discarded.
+
+The player’s hand increases by three cards and the deck size is reduced by four cards.
+
+Workarounds
+-----------
+N/A
+
+
+Attachments
+-----------
+cardtest2.c
+Dominion.c
+
+
+Other Information
+-----------------
+Based on tests from cardtest2.c, there may be an additional bug concerning the Smithy card. In some runs, the deck size does not decrease at all, even when the hand size does. cardtest2.c will need to be run after the above bug is fixed to see whether this issue remains.
